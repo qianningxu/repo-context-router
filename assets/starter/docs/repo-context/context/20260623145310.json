@@ -16,8 +16,7 @@
             "type": "file",
             "path": "docs/product/onboarding.md",
             "reason": "The requested change affects onboarding.",
-            "content": null,
-            "missing": true
+            "content": null
           }
         ]
       }

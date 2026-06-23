@@ -87,8 +87,7 @@ function buildContextTree(node) {
       type: "file",
       path: node.path,
       reason: node.reason ?? null,
-      content,
-      missing: content === null
+      content
     };
   }
 

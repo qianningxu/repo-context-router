@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const repoRoot = process.cwd();
-const docsDir = path.join(repoRoot, "docs");
-const routerDir = path.join(docsDir, "repo-context");
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const routerDir = path.resolve(scriptDir, "..");
+const docsDir = path.resolve(routerDir, "..");
+const repoRoot = path.resolve(docsDir, "..");
 const contextIndexPath = path.join(routerDir, "context.index.json");
 
 function readJson(filePath) {
@@ -46,9 +48,8 @@ function indexExistingFolders(node, map = new Map()) {
 }
 
 function shouldSkip(absPath) {
-  const name = path.basename(absPath);
-  if (name === "repo-context") return true;
-  return false;
+  const rel = pathFromRepo(absPath);
+  return rel === "docs/repo-context" || rel.startsWith("docs/repo-context/");
 }
 
 function buildNode(absDir, existingFolderLoadWhen) {
@@ -90,28 +91,8 @@ if (!fs.existsSync(docsDir)) {
 }
 
 const existing = readJson(contextIndexPath);
-const existingFolderLoadWhen = indexExistingFolders(existing?.tree);
-
-const contextIndex = {
-  root: "docs",
-  path: "docs/repo-context/context.index.json",
-  generated_from: {
-    documents: "docs/**/*.md frontmatter",
-    default_folder_load_when: null
-  },
-  routing_contract: {
-    purpose: "Use this compiled index to decide which repository knowledge sources should be loaded for a prompt.",
-    load_when: "Natural-language condition for when this node should be selected.",
-    folder_default: "Folder load_when values are edited only in this JSON index and default to null until configured manually.",
-    selection_rule: "Select the smallest set of matching documents. Use folder nodes to narrow the search space, then select specific child documents.",
-    decision_log: {
-      directory: "docs/repo-context/decisions",
-      keep_latest: 10
-    },
-    context_output: "docs/repo-context/context/<decision-filename>.json"
-  },
-  tree: buildNode(docsDir, existingFolderLoadWhen)
-};
+const existingFolderLoadWhen = indexExistingFolders(existing);
+const contextIndex = buildNode(docsDir, existingFolderLoadWhen);
 
 writeJson(contextIndexPath, contextIndex);
 console.log(`wrote ${path.relative(repoRoot, contextIndexPath)}`);

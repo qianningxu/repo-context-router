@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const repoRoot = process.cwd();
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const routerDir = path.resolve(scriptDir, "..");
+const repoRoot = path.resolve(routerDir, "..", "..");
 const decisionArg = process.argv[2];
-const routerDir = path.join(repoRoot, "docs", "repo-context");
 const decisionDir = path.join(routerDir, "decisions");
 const contextDir = path.join(routerDir, "context");
 const keepLatest = 10;
@@ -66,34 +68,45 @@ const decisionPath = resolvedDecisionArg;
 const outputPath = path.join(contextDir, path.basename(decisionPath));
 const decision = JSON.parse(fs.readFileSync(decisionPath, "utf8"));
 
-function collectFiles(node, files = []) {
-  if (!node || typeof node !== "object") return files;
-  if (node.type === "file") files.push({ path: node.path, reason: node.reason ?? null });
-  for (const child of node.children ?? []) collectFiles(child, files);
-  return files;
-}
-
 function readRepoFile(repoPath) {
   const absPath = path.resolve(repoRoot, repoPath);
   const rel = path.relative(repoRoot, absPath);
   if (rel.startsWith("..") || path.isAbsolute(rel)) {
     throw new Error(`selected path escapes repository: ${repoPath}`);
   }
+  if (!fs.existsSync(absPath)) return null;
   return fs.readFileSync(absPath, "utf8");
 }
 
-const selectedFiles = collectFiles(decision.selected_tree);
+function buildContextTree(node) {
+  if (!node || typeof node !== "object") return null;
+
+  if (node.type === "file") {
+    const content = readRepoFile(node.path);
+    return {
+      type: "file",
+      path: node.path,
+      reason: node.reason ?? null,
+      content,
+      missing: content === null
+    };
+  }
+
+  return {
+    type: "folder",
+    path: node.path,
+    reason: node.reason ?? null,
+    children: (node.children ?? []).map(buildContextTree).filter(Boolean)
+  };
+}
+
+const contextTree = buildContextTree(decision.selected_tree);
 const context = {
   source_decision: path.relative(repoRoot, decisionPath),
   decision_created_at: decision.created_at ?? null,
   prompt_summary: decision.prompt_summary ?? null,
-  needs_repo_knowledge: decision.needs_repo_knowledge ?? selectedFiles.length > 0,
-  selected_tree: decision.selected_tree ?? null,
-  selected_sources: selectedFiles.map((file) => ({
-    path: file.path,
-    reason: file.reason,
-    content: readRepoFile(file.path)
-  }))
+  needs_repo_knowledge: decision.needs_repo_knowledge ?? false,
+  context_tree: contextTree
 };
 
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });

@@ -1,13 +1,27 @@
 {
   "source_decision": "docs/repo-context/decisions/20260623145310.json",
   "decision_created_at": "2026-06-23T14:53:10Z",
-  "prompt_summary": "No repository-specific context selected.",
-  "needs_repo_knowledge": false,
-  "selected_tree": {
+  "prompt_summary": "User asks about changing the onboarding flow.",
+  "needs_repo_knowledge": true,
+  "context_tree": {
     "type": "folder",
     "path": "docs",
-    "reason": "No repository documents were selected.",
-    "children": []
-  },
-  "selected_sources": []
+    "reason": "The prompt needs repository product knowledge.",
+    "children": [
+      {
+        "type": "folder",
+        "path": "docs/product",
+        "reason": "The prompt is about product behavior and user flow.",
+        "children": [
+          {
+            "type": "file",
+            "path": "docs/product/onboarding.md",
+            "reason": "The requested change affects onboarding.",
+            "content": null,
+            "missing": true
+          }
+        ]
+      }
+    ]
+  }
 }

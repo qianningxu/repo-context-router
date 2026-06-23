@@ -2,6 +2,8 @@
 
 Before every response, route the user prompt through `docs/repo-context/context.index.json` in the main thread.
 
+The index is a direct tree mirror of `docs/`. It contains only folders and Markdown files, and it excludes `docs/repo-context/`.
+
 Do not use a subagent for routing.
 
 ## Traversal Rule
@@ -45,6 +47,6 @@ Include reasons for selected folders and files. Do not include raw document cont
 
 After the decision file is written, the `PostToolUse` hook runs `docs/repo-context/scripts/build-context.mjs` and generates the matching file under `docs/repo-context/context/`.
 
-Read the matching context file before answering or editing when `needs_repo_knowledge` is true.
+Read the matching context file before answering or editing when `needs_repo_knowledge` is true. The generated file contains `context_tree`, which mirrors `selected_tree` and attaches raw document content at selected file nodes.
 
 Do not dump full documents into hook output. Hooks only run deterministic scripts: one refreshes `docs/repo-context/context.index.json`, and one rebuilds the matching context file from the latest decision file.

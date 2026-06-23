@@ -37,9 +37,9 @@ docs/
 
 The target repository adds its own documentation under `docs/`. Those docs can cover architecture, product, reliability, security, schema, design, planning, or references.
 
-`docs/repo-context/context.index.json` is generated from `docs/`. `docs/repo-context/decisions/` stores routing decisions. `docs/repo-context/context/` stores selected document contents. Decision files and context files use the same timestamp filename.
+`docs/repo-context/context.index.json` is the full mirror of the documentation tree. It contains only folder nodes and Markdown file nodes from `docs/`; it excludes `docs/repo-context/` and non-Markdown files. `docs/repo-context/decisions/` stores pruned tree decisions. `docs/repo-context/context/` stores the matching pruned tree with selected file contents attached. Decision files and context files use the same timestamp filename.
 
-The starter includes one empty decision/context pair to show the file relationship.
+The starter includes mock index, decision, and context JSON files to show the file relationship. `build-index.mjs` replaces the index from the real `docs/` tree, and `build-context.mjs` replaces the matching context file from the latest decision.
 
 ## 2. Add `load_when` And Compile The Index
 
@@ -59,7 +59,7 @@ Generate or update it from the repository root:
 node docs/repo-context/scripts/build-index.mjs
 ```
 
-The build script scans `docs/**/*.md`, reads document `load_when` frontmatter, and writes `docs/repo-context/context.index.json`, which the main agent uses instead of crawling raw docs. Folder-level `load_when` values are edited only in `docs/repo-context/context.index.json`; they default to `null` and are preserved when the document tree is refreshed.
+The build script scans `docs/`, skips `docs/repo-context/`, reads Markdown document `load_when` frontmatter, and writes a folder/file tree to `docs/repo-context/context.index.json`. Folder-level `load_when` values are edited only in that index; they default to `null` and are preserved when the tree is refreshed.
 
 ## 3. Configure The First Hook
 
@@ -92,7 +92,7 @@ docs/repo-context/decisions/YYYYMMDDHHMMSS.json
 
 Routing is top-down. If a folder's `load_when` condition evaluates to false, the main agent stops at that folder and does not evaluate its children. If the condition evaluates to true, or if `load_when` is null, the main agent can continue into its children.
 
-Each decision should contain the smallest useful pruned `selected_tree` that mirrors the `docs/` tree instead of a flat list. Keep only the latest 10 decision files by default.
+Each decision should contain the smallest useful pruned `selected_tree` that mirrors the `docs/` tree instead of a flat list. The generated context file should contain a matching `context_tree` with file contents attached at file nodes. Keep only the latest 10 decision files by default.
 
 ## 5. Configure The Second Hook
 

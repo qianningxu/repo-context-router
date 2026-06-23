@@ -1,25 +1,31 @@
 {
-  "root": "docs",
-  "path": "docs/repo-context/context.index.json",
-  "generated_from": {
-    "documents": "docs/**/*.md frontmatter",
-    "default_folder_load_when": null
-  },
-  "routing_contract": {
-    "purpose": "Use this compiled index to decide which repository knowledge sources should be loaded for a prompt.",
-    "load_when": "Natural-language condition for when this node should be selected.",
-    "folder_default": "Folder load_when values are edited only in this JSON index and default to null until configured manually.",
-    "selection_rule": "Select the smallest set of matching documents. Use folder nodes to narrow the search space, then select specific child documents.",
-    "decision_log": {
-      "directory": "docs/repo-context/decisions",
-      "keep_latest": 10
+  "type": "folder",
+  "path": "docs",
+  "load_when": null,
+  "children": [
+    {
+      "type": "folder",
+      "path": "docs/product",
+      "load_when": "The prompt involves product behavior, user flows, onboarding, billing, plans, or customer-facing requirements.",
+      "children": [
+        {
+          "type": "file",
+          "path": "docs/product/onboarding.md",
+          "load_when": "The prompt involves new-user onboarding, activation, first-run experience, or setup flow changes."
+        }
+      ]
     },
-    "context_output": "docs/repo-context/context/<decision-filename>.json"
-  },
-  "tree": {
-    "type": "folder",
-    "path": "docs",
-    "load_when": null,
-    "children": []
-  }
+    {
+      "type": "folder",
+      "path": "docs/engineering",
+      "load_when": "The prompt involves implementation, architecture, data flow, reliability, security, or operational behavior.",
+      "children": [
+        {
+          "type": "file",
+          "path": "docs/engineering/storage.md",
+          "load_when": "The prompt involves persistence, database tables, migrations, imports, queries, or schema validation."
+        }
+      ]
+    }
+  ]
 }

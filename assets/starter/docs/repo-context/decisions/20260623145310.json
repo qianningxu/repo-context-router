@@ -1,12 +1,25 @@
 {
   "created_at": "2026-06-23T14:53:10Z",
-  "prompt_summary": "No repository-specific context selected.",
+  "prompt_summary": "User asks about changing the onboarding flow.",
   "index_path": "docs/repo-context/context.index.json",
-  "needs_repo_knowledge": false,
+  "needs_repo_knowledge": true,
   "selected_tree": {
     "type": "folder",
     "path": "docs",
-    "reason": "No repository documents were selected.",
-    "children": []
+    "reason": "The prompt needs repository product knowledge.",
+    "children": [
+      {
+        "type": "folder",
+        "path": "docs/product",
+        "reason": "The prompt is about product behavior and user flow.",
+        "children": [
+          {
+            "type": "file",
+            "path": "docs/product/onboarding.md",
+            "reason": "The requested change affects onboarding."
+          }
+        ]
+      }
+    ]
   }
 }

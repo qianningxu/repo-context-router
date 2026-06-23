@@ -1,0 +1,4 @@
+interface:
+  display_name: "Repo Context Router"
+  short_description: "Initialize Codex context routing files in a repository."
+  default_prompt: "Initialize repo context routing in this repository."

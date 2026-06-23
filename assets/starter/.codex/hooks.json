@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/docs/repo-context/scripts/build-index.mjs\"",
+            "timeout": 30,
+            "statusMessage": "Updating repository context index"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|apply_patch|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/docs/repo-context/scripts/build-context.mjs\"",
+            "timeout": 30,
+            "statusMessage": "Updating selected repository context"
+          }
+        ]
+      }
+    ]
+  }
+}

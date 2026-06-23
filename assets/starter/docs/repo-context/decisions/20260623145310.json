@@ -1,0 +1,12 @@
+{
+  "created_at": "2026-06-23T14:53:10Z",
+  "prompt_summary": "No repository-specific context selected.",
+  "index_path": "docs/repo-context/context.index.json",
+  "needs_repo_knowledge": false,
+  "selected_tree": {
+    "type": "folder",
+    "path": "docs",
+    "reason": "No repository documents were selected.",
+    "children": []
+  }
+}

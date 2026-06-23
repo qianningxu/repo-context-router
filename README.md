@@ -1,219 +1,117 @@
-# Origin
+# Repo Context Router
 
-This project comes from the section "We made repository knowledge the system of record" in OpenAI's [Harness engineering: leveraging Codex in an agent-first world](https://openai.com/index/harness-engineering/).
+`repo-context-router` is a Codex skill for initializing repository context routing.
 
-> "give Codex a map, not a 1,000-page instruction manual."
+It is inspired by OpenAI's [Harness engineering: leveraging Codex in an agent-first world](https://openai.com/index/harness-engineering/), especially the idea that `AGENTS.md` should be a map rather than a large instruction manual.
 
-The original section argues that context management is one of the central problems in making agents useful on large, complex tasks.
+The problem is that a structured `docs/` tree does not automatically tell an agent what to read. Without an explicit routing layer, the agent has to infer relevance from paths, filenames, directory names, and ad hoc searches. That can miss required docs, load irrelevant docs, or produce output that is not grounded in the repository's declared source of truth.
 
-OpenAI describes trying the "one big `AGENTS.md`" approach and finding that it failed because context is scarce, giant instruction files crowd out the actual task and code, broad guidance stops being actionable, monolithic manuals become stale quickly, and a single blob is hard to verify mechanically.
+This skill initializes a small routing pipeline that turns document-level loading rules into a compact index, records routing decisions, and builds bounded selected-context JSON from the selected docs.
 
-The pattern they moved toward is to treat `AGENTS.md` as a table of contents rather than an encyclopedia.
+## 1. Create The Expected Architecture
 
-In that pattern, a short `AGENTS.md` is injected into context and points to deeper sources of truth in a structured repository knowledge base.
+Repository knowledge lives under `docs/`.
 
-The article's example knowledge store includes top-level orientation files, design docs, execution plans, generated schema docs, product specs, reference material, and domain documents for frontend, reliability, security, product sense, plans, and quality.
+The authored documents are the source of truth. Router-owned files live under `docs/repo-context/` so the index, decisions, generated context, and scripts stay together.
 
-This project turns that idea into a Codex hook-backed context router: each prompt is classified, then Codex receives compact guidance about which repository knowledge to inspect.
-
-Codex hooks are the enforcement point.
-
-A `UserPromptSubmit` hook runs before the user prompt is sent to the model.
-
-The hook receives JSON on `stdin`, including the prompt, current working directory, session id, and transcript path.
-
-It can return extra developer context with `hookSpecificOutput.additionalContext`, or block the prompt with a decision and reason.
-
-The practical goal is:
-
-1. The user submits a request.
-2. A hook classifies the request against repository knowledge rules.
-3. The hook returns compact routing instructions.
-4. Codex reads only the relevant docs and files instead of receiving a giant manual up front.
-
-# How It Works
-
-`repo-context-router` is a hook-backed context selection system.
-
-It should maintain three kinds of files:
-
-- A knowledge manifest, such as `docs/index.yaml`, listing canonical docs, owners, paths, tags, and `read_when` guidance.
-- A routing policy, such as `knowledge/rules.yaml`, containing natural-language boolean checks.
-- A hook script, such as `.codex/hooks/user-prompt-router.mjs`, that runs on `UserPromptSubmit`.
-
-The hook script should:
-
-1. Parse the hook input JSON from `stdin`.
-2. Read the knowledge manifest and routing policy.
-3. Evaluate whether the prompt needs repository-specific context.
-4. Select the smallest relevant set of docs.
-5. Return a short `additionalContext` message telling Codex what to inspect.
-
-The hook may use an LLM judge, but the hook output must still be deterministic JSON in Codex's expected shape.
-
-Prefer a hybrid approach:
-
-- Use deterministic matching first: paths, doc titles, tags, `read_when`, and obvious keywords.
-- Use an LLM judge only when the deterministic score is ambiguous or when the route depends on natural-language policy.
-- Validate the LLM result against a strict schema before returning it to Codex.
-- Fail open with a conservative routing note if the LLM call fails; fail closed only for safety or destructive-action policies.
-
-Example LLM judge output:
-
-```json
-{
-  "needs_repo_knowledge": true,
-  "selected_docs": [
-    {
-      "path": "docs/architecture.md",
-      "reason": "The request changes module boundaries or data flow."
-    }
-  ],
-  "block": false,
-  "block_reason": null
-}
-```
-
-Example hook output:
-
-```json
-{
-  "hookSpecificOutput": {
-    "hookEventName": "UserPromptSubmit",
-    "additionalContext": "Repo context routing: before editing, inspect docs/architecture.md. If the change touches storage or schema, also inspect docs/generated/db-schema.md."
-  }
-}
-```
-
-Example block output:
-
-```json
-{
-  "decision": "block",
-  "reason": "This request needs clarification before changing repository policy docs."
-}
-```
-
-The router should not dump full docs into the prompt.
-
-It should act like a librarian: identify which sources matter, explain why, and let Codex read them on demand.
-
-# Set Up
-
-Create the hook script:
+Expected architecture:
 
 ```text
+agents.md
 .codex/
   hooks.json
-  hooks/
-    user-prompt-router.mjs
 docs/
-  index.yaml
-knowledge/
-  rules.yaml
+  ...
+  repo-context/
+    context.index.json
+    decisions/
+      YYYYMMDDHHMMSS.json
+    context/
+      YYYYMMDDHHMMSS.json
+    scripts/
+      build-index.mjs
+      build-context.mjs
 ```
 
-Add a project hook in `.codex/hooks.json`:
+`agents.md` is the small entry point that instructs the main agent to route each prompt before answering.
+
+The target repository adds its own documentation under `docs/`. Those docs can cover architecture, product, reliability, security, schema, design, planning, or references.
+
+`docs/repo-context/context.index.json` is generated from `docs/`. `docs/repo-context/decisions/` stores routing decisions. `docs/repo-context/context/` stores selected document contents. Decision files and context files use the same timestamp filename.
+
+The starter includes one empty decision/context pair to show the file relationship.
+
+## 2. Add `load_when` And Compile The Index
+
+Each Markdown document declares when it should be loaded with a `load_when` field in frontmatter:
+
+```yaml
+---
+load_when: "The prompt involves database tables, migrations, persistence, imports, queries, schema validation, or data model changes."
+---
+```
+
+`docs/repo-context/context.index.json` is the compact representation of the repository knowledge tree.
+
+Generate or update it from the repository root:
+
+```bash
+node docs/repo-context/scripts/build-index.mjs
+```
+
+The build script scans `docs/**/*.md`, reads document `load_when` frontmatter, and writes `docs/repo-context/context.index.json`, which the main agent uses instead of crawling raw docs. Folder-level `load_when` values are edited only in `docs/repo-context/context.index.json`; they default to `null` and are preserved when the document tree is refreshed.
+
+## 3. Configure The First Hook
+
+Install project-level Codex hooks at:
+
+```text
+<repo>/.codex/hooks.json
+```
+
+`UserPromptSubmit` runs after the user submits a prompt and before Codex sends that prompt to the model:
 
 ```json
 {
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$(pwd)/.codex/hooks/user-prompt-router.mjs\"",
-            "timeout": 30,
-            "statusMessage": "Routing repository context"
-          }
-        ]
-      }
-    ]
-  }
+  "type": "command",
+  "command": "node \"$(git rev-parse --show-toplevel)/docs/repo-context/scripts/build-index.mjs\"",
+  "timeout": 30,
+  "statusMessage": "Updating repository context index"
 }
 ```
 
-For a repository hook, prefer resolving from the repository root when the repo is under git:
+This keeps `docs/repo-context/context.index.json` current before the main agent routes the prompt. `UserPromptSubmit` does not support `matcher`; any configured matcher is ignored for this event.
+
+## 4. Route In The Main Agent
+
+After `docs/repo-context/context.index.json` is current, the main agent reads it, evaluates the user prompt against the `load_when` values, and writes a routing decision to:
+
+```text
+docs/repo-context/decisions/YYYYMMDDHHMMSS.json
+```
+
+Routing is top-down. If a folder's `load_when` condition evaluates to false, the main agent stops at that folder and does not evaluate its children. If the condition evaluates to true, or if `load_when` is null, the main agent can continue into its children.
+
+Each decision should contain the smallest useful pruned `selected_tree` that mirrors the `docs/` tree instead of a flat list. Keep only the latest 10 decision files by default.
+
+## 5. Configure The Second Hook
+
+`PostToolUse` runs after file-writing tools and shell commands. In this pattern, it runs after the main agent writes the routing decision:
 
 ```json
 {
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/user-prompt-router.mjs\"",
-            "timeout": 30,
-            "statusMessage": "Routing repository context"
-          }
-        ]
-      }
-    ]
-  }
+  "matcher": "Bash|apply_patch|Edit|Write",
+  "hooks": [
+    {
+      "type": "command",
+      "command": "node \"$(git rev-parse --show-toplevel)/docs/repo-context/scripts/build-context.mjs\"",
+      "timeout": 30,
+      "statusMessage": "Updating selected repository context"
+    }
+  ]
 }
 ```
 
-Create a minimal `docs/index.yaml`:
+This runs `docs/repo-context/scripts/build-context.mjs`, which reads the latest decision, loads the selected documents, writes the matching context file under `docs/repo-context/context/`, and prunes older decision and context files. If no decision file exists, the script exits without changing context.
 
-```yaml
-docs:
-  - path: docs/architecture.md
-    title: Architecture
-    read_when:
-      - changing module boundaries
-      - changing storage flow
-      - explaining how the repository is organized
-    tags:
-      - architecture
-      - storage
-
-  - path: docs/generated/db-schema.md
-    title: Database schema
-    read_when:
-      - changing SQLite tables
-      - changing imports
-      - debugging persistence
-    tags:
-      - database
-      - generated
-```
-
-Create a minimal `knowledge/rules.yaml`:
-
-```yaml
-rules:
-  - id: needs_repo_knowledge
-    check: "Does this prompt require repository-specific knowledge to answer safely?"
-
-  - id: architecture
-    check: "Does this prompt involve architecture, module boundaries, data flow, or storage?"
-    docs:
-      - docs/architecture.md
-
-  - id: database
-    check: "Does this prompt involve schema, SQLite, imports, persistence, or migrations?"
-    docs:
-      - docs/generated/db-schema.md
-```
-
-After adding the hook, restart Codex or open a new session, then review and trust the hook with `/hooks`.
-
-Project-local hooks run only when the project `.codex` configuration layer is trusted.
-
-For LLM-backed routing, configure the hook script with an API key through the environment.
-
-Keep the LLM prompt strict: request JSON only, validate the output, and cap the selected docs.
-
-Avoid spawning another Codex session from inside the hook; use a direct model API call so the hook stays bounded and non-recursive.
-
-Suggested defaults:
-
-- Maximum selected docs: 5.
-- Maximum `additionalContext`: 1,500 characters.
-- Hook timeout: 30 seconds.
-- LLM timeout: 10 seconds.
-- Fallback: deterministic routing plus a warning if the LLM judge fails.
-
-For stronger enforcement, pair this with a `Stop` hook that checks whether Codex actually followed required routing instructions before ending the turn.
+Before answering or editing, the main agent reads the matching context file when `needs_repo_knowledge` is true.

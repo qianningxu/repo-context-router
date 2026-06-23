@@ -1,8 +1,7 @@
 {
   "source_decision": "docs/repo-context/decisions/20260623145310.json",
   "decision_created_at": "2026-06-23T14:53:10Z",
-  "prompt_summary": "User asks about changing the onboarding flow.",
-  "needs_repo_knowledge": true,
+  "prompt": "Change the new-user onboarding flow so first-time users choose a workspace template before inviting teammates.",
   "context_tree": {
     "type": "folder",
     "path": "docs",

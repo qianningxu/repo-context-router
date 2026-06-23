@@ -104,8 +104,7 @@ const contextTree = buildContextTree(decision.selected_tree);
 const context = {
   source_decision: path.relative(repoRoot, decisionPath),
   decision_created_at: decision.created_at ?? null,
-  prompt_summary: decision.prompt_summary ?? null,
-  needs_repo_knowledge: decision.needs_repo_knowledge ?? false,
+  prompt: decision.prompt ?? null,
   context_tree: contextTree
 };
 

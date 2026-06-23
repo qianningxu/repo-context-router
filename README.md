@@ -92,7 +92,7 @@ docs/repo-context/decisions/YYYYMMDDHHMMSS.json
 
 Routing is top-down. If a folder's `load_when` condition evaluates to false, the main agent stops at that folder and does not evaluate its children. If the condition evaluates to true, or if `load_when` is null, the main agent can continue into its children.
 
-Each decision should contain the smallest useful pruned `selected_tree` that mirrors the `docs/` tree instead of a flat list. The generated context file should contain a matching `context_tree` with file contents attached at file nodes. Keep only the latest 10 decision files by default.
+Each decision should contain the actual prompt details and the smallest useful pruned `selected_tree` that mirrors the `docs/` tree instead of a flat list. If no repository knowledge is needed, `selected_tree.children` should be empty. The generated context file should contain a matching `context_tree` with file contents attached at file nodes. Keep only the latest 10 decision files by default.
 
 ## 5. Configure The Second Hook
 
@@ -114,4 +114,4 @@ Each decision should contain the smallest useful pruned `selected_tree` that mir
 
 This runs `docs/repo-context/scripts/build-context.mjs`, which reads the latest decision, loads the selected documents, writes the matching context file under `docs/repo-context/context/`, and prunes older decision and context files. If no decision file exists, the script exits without changing context.
 
-Before answering or editing, the main agent reads the matching context file when `needs_repo_knowledge` is true.
+Before answering or editing, the main agent reads the matching context file when the selected tree is not empty.

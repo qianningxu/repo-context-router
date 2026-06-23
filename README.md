@@ -1,14 +1,15 @@
-# Repo Context Router
+# Origin
 
-`repo-context-router` is a Codex hook pattern and tool scaffold for routing each
-turn to the smallest useful set of repository knowledge.
+This project comes from OpenAI's
+[Harness engineering: leveraging Codex in an agent-first world](https://openai.com/index/harness-engineering/).
 
-## Origin
+> "give Codex a map, not a 1,000-page instruction manual."
 
-This project comes from the Codex "repository knowledge as the system of
-record" pattern described in OpenAI's harness engineering writing: keep
-`AGENTS.md` small, treat it as a map, and put deeper repository knowledge in a
-structured docs tree.
+The article describes a Codex operating pattern where `AGENTS.md` stays small
+and acts as a table of contents, while the repository's structured docs tree is
+treated as the system of record. This project turns that idea into a hook-backed
+context router: each prompt is classified, then Codex receives compact guidance
+about which repository knowledge to inspect.
 
 Codex hooks are the enforcement point. A `UserPromptSubmit` hook runs before the
 user prompt is sent to the model. The hook receives JSON on `stdin`, including
@@ -24,7 +25,7 @@ The practical goal is:
 4. Codex reads only the relevant docs and files instead of receiving a giant
    manual up front.
 
-## How It Works
+# How It Works
 
 `repo-context-router` is a hook-backed context selection system.
 
@@ -96,7 +97,7 @@ The router should not dump full docs into the prompt. It should act like a
 librarian: identify which sources matter, explain why, and let Codex read them
 on demand.
 
-## Set Up
+# Set Up
 
 Create the hook script:
 

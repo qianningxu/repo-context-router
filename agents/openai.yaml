@@ -1,4 +1,4 @@
 interface:
-  display_name: "Repo Context Router"
-  short_description: "Initialize Codex context routing files in a repository."
-  default_prompt: "Initialize repo context routing in this repository."
+  display_name: "Repo Doc Router"
+  short_description: "Install Codex doc routing files in a repo."
+  default_prompt: "Use $repo-doc-router to initialize repo doc routing in this repository."

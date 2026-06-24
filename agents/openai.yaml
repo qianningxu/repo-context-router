@@ -2,3 +2,6 @@ interface:
   display_name: "Repo Doc Loader"
   short_description: "Install Codex doc loading files in a repo."
   default_prompt: "Use $repo-doc-loader to initialize repo doc loading in this repository."
+
+policy:
+  allow_implicit_invocation: false

@@ -1,6 +1,6 @@
-# Repo Doc Router
+# Repo Doc Loader
 
-`repo-doc-router` is a Codex skill for initializing repository doc routing.
+`repo-doc-loader` is a Codex skill for initializing repository doc loading.
 
 It is inspired by OpenAI's [Harness engineering: leveraging Codex in an agent-first world](https://openai.com/index/harness-engineering/), especially the idea that `AGENTS.md` should be a map rather than a large instruction manual.
 

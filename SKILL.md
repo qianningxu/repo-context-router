@@ -1,6 +1,6 @@
 ---
-name: repo-doc-router
-description: Initialize repository doc routing for Codex by installing docs/repo-context/context.index.json generation, two deterministic Codex hooks, agents.md main-thread routing instructions, context decision logging, and selected-context generation.
+name: repo-doc-loader
+description: Initialize repository doc loading for Codex by installing docs/repo-context/context.index.json generation, two deterministic Codex hooks, agents.md main-thread routing instructions, context decision logging, and selected-context generation.
 ---
 
 
